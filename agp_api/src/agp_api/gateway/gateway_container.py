@@ -361,7 +361,6 @@ class GatewayContainer:
 
         try:
             await self.gateway.publish(message.encode(), organization, namespace, remote_agent)
-            return True
         except Exception as e:
             raise ValueError(f"Error sending message: {e}") from e
 

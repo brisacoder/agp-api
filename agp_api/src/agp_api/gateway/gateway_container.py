@@ -29,7 +29,9 @@ class GatewayContainer:
             incoming packets from the AGP.
     """
 
-    def __init__(self, gateway: Optional[Gateway] = None, fastapi_app: Optional[FastAPI] = None):
+    def __init__(
+        self, gateway: Optional[Gateway] = None, fastapi_app: Optional[FastAPI] = None
+    ):
         """
         Initializes the GatewayContainer with a Gateway instance and optionally a FastAPI app.
 
@@ -91,7 +93,7 @@ class GatewayContainer:
         """
         self.gateway = gateway
 
-    async def _connect(self, agent_container: AgentContainer) -> int:
+    async def _connect(self, agent_container: AgentContainer, remote_agent) -> int:
         """
         Connects to the remote gateway, subscribes to messages, and processes them.
 
@@ -109,11 +111,15 @@ class GatewayContainer:
         # identifies a specific instance of the agent and it is returned by the
         # create_agent function if not provided.
 
+        organization = agent_container.get_organization()
+        namespace = agent_container.get_namespace()
+        local_agent = agent_container.get_local_agent()
+
         # Connect to the gateway server
         local_agent_id = await self.gateway.create_agent(
-            agent_container.get_organization(),
-            agent_container.get_namespace(),
-            agent_container.get_local_agent(),
+            organization,
+            namespace,
+            local_agent,
         )
 
         # Connect to the service and subscribe for messages
@@ -124,11 +130,14 @@ class GatewayContainer:
 
         try:
             await self.gateway.subscribe(
-                agent_container.get_organization(),
-                agent_container.get_namespace(),
-                agent_container.get_local_agent(),
+                organization,
+                namespace,
+                local_agent,
                 local_agent_id,
             )
+            if remote_agent is not None:
+                await self.gateway.set_route(organization, namespace, remote_agent)
+
         except Exception as e:
             raise RuntimeError(
                 "Error subscribing to gateway: unable to subscribe."
@@ -137,7 +146,11 @@ class GatewayContainer:
         return conn_id
 
     async def connect_with_retry(
-        self, agent_container: AgentContainer, max_duration=300, initial_delay=1
+        self,
+        agent_container: AgentContainer,
+        max_duration=300,
+        initial_delay=1,
+        remote_agent: Optional[str] = None,
     ):
         """
         Attempts to connect to a gateway at the specified address and port using exponential backoff.
@@ -160,7 +173,7 @@ class GatewayContainer:
 
         while time.time() - start_time < max_duration:
             try:
-                return await self._connect(agent_container)
+                return await self._connect(agent_container, remote_agent)
             except Exception as e:
                 logger.warning(
                     "Connection attempt failed: %s. Retrying in %s seconds...", e, delay

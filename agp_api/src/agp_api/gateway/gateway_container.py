@@ -5,7 +5,7 @@ from http import HTTPStatus
 import json
 import logging
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from agp_bindings import Gateway, GatewayConfig
 from fastapi import FastAPI, HTTPException
@@ -347,6 +347,23 @@ class GatewayContainer:
             logger.info(
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
+
+    async def publish_messsage(self, message: str, agent_container: AgentContainer, remote_agent: str) -> Any:
+        """
+        Sends a message (JSON string) to the remote endpoint 
+
+        Args:
+            msg (str): A JSON string representing the request payload.
+        """
+
+        organization = agent_container.get_organization()
+        namespace = agent_container.get_namespace()
+
+        try:
+            await self.gateway.publish(message.encode(), organization, namespace, remote_agent)
+            return True
+        except Exception as e:
+            raise ValueError(f"Error sending message: {e}") from e
 
     @classmethod
     def create_error(cls, error, code) -> str:

@@ -2,7 +2,7 @@
     "python.testing.unittestArgs": [
         "-v",
         "-s",
-        "./agp_api/tests",
+        ".",
         "-p",
         "test_*.py"
     ],

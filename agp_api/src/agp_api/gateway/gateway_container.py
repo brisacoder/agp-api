@@ -29,15 +29,15 @@ class GatewayContainer:
             incoming packets from the AGP.
     """
 
-    def __init__(self, gateway: Gateway, fastapi_app: Optional[FastAPI] = None):
+    def __init__(self, gateway: Optional[Gateway] = None, fastapi_app: Optional[FastAPI] = None):
         """
         Initializes the GatewayContainer with a Gateway instance and optionally a FastAPI app.
 
         Args:
-            gateway (Gateway): The Gateway instance to manage.
+            gateway (Optional[Gateway]): The Gateway instance to manage. If not provided, a new instance will be created.
             fastapi_app (Optional[FastAPI]): The FastAPI application instance.
         """
-        self.gateway = gateway
+        self.gateway = gateway if gateway is not None else Gateway()
         self.fastapi_app = fastapi_app
 
     def get_fastapi_app(self) -> Optional[FastAPI]:
@@ -62,13 +62,19 @@ class GatewayContainer:
         self.gateway = Gateway()
         return self.gateway
 
-    def set_config(self, endpoint: str, insecure: bool) -> None:
+    def set_config(
+        self, endpoint: str = "http://127.0.0.1:46357", insecure: bool = False
+    ) -> None:
         """
         Sets the configuration for the Gateway instance.
 
         Args:
-            endpoint (str): The endpoint for the Gateway in the format "http://127.0.0.1:8123".
-            insecure (bool): Whether to use an insecure connection.
+            endpoint (str, optional): The endpoint for the Gateway in the format "http://<hostname_or_ip>:<port>".
+                                    Defaults to "http://127.0.0.1:46357".
+            insecure (bool, optional): Whether to use an insecure connection. Defaults to False.
+
+        Returns:
+            None
         """
         self.gateway.config = GatewayConfig(endpoint=endpoint, insecure=insecure)
         self.gateway.configure(self.gateway.config)

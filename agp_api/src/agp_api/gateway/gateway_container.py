@@ -5,7 +5,7 @@ from http import HTTPStatus
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from agp_bindings import Gateway, GatewayConfig
 from fastapi import FastAPI, HTTPException
@@ -348,7 +348,7 @@ class GatewayContainer:
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
 
-    async def publish_messsage(self, message: str, agent_container: AgentContainer, remote_agent: str) -> Any:
+    async def publish_messsage(self, message: Dict[str, Any], agent_container: AgentContainer, remote_agent: str) -> Any:
         """
         Sends a message (JSON string) to the remote endpoint 
 
@@ -360,7 +360,8 @@ class GatewayContainer:
         namespace = agent_container.get_namespace()
 
         try:
-            await self.gateway.publish(message.encode(), organization, namespace, remote_agent)
+            json_message = json.dumps(message)
+            await self.gateway.publish(json_message.encode(), organization, namespace, remote_agent)
         except Exception as e:
             raise ValueError(f"Error sending message: {e}") from e
 

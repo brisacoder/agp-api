@@ -1,13 +1,15 @@
 """Module gateway_holder: Contains the GatewayHolder class for managing the Gateway instance and FastAPI app."""
 
 import asyncio
+from http import HTTPStatus
 import json
 import logging
 import time
 from typing import Optional
 
 from agp_bindings import Gateway, GatewayConfig
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
 from ..agent.agent_container import AgentContainer
 
 logger = logging.getLogger(__name__)
@@ -192,13 +194,13 @@ class GatewayContainer:
 
         # Validate that the assistant_id is not empty.
         if not payload.get("agent_id"):
-            return create_error("agent_id is required and cannot be empty.", 422)
+            return self.create_error("agent_id is required and cannot be empty.", 422)
 
         # Extract the route from the message payload.
         # This step is done to emulate the behavior of the REST API.
         route = payload.get("route")
         if not route:
-            return create_error("Not Found.", 404)
+            return self.create_error("Not Found.", 404)
 
         message_id = None
         # Validate the config section: ensure that config.tags is a non-empty list.
@@ -213,33 +215,33 @@ class GatewayContainer:
         # Retrieve the 'input' field and ensure it is a dictionary.
         input_field = payload.get("input")
         if not isinstance(input_field, dict):
-            return create_error("The 'input' field should be a dictionary.", 500)
+            return self.create_error("The 'input' field should be a dictionary.", 500)
 
         # Retrieve the 'messages' list from the 'input' dictionary.
         messages = input_field.get("messages")
         if not isinstance(messages, list) or not messages:
-            return create_error(
+            return self.create_error(
                 "The 'input.messages' field should be a non-empty list.", 500
             )
 
         # Access the last message in the list.
         last_message = messages[-1]
         if not isinstance(last_message, dict):
-            return create_error(
+            return self.create_error(
                 "The first element in 'input.messages' should be a dictionary.", 500
             )
 
         # Extract the 'content' from the first message.
         human_input_content = last_message.get("content")
         if human_input_content is None:
-            return create_error(
+            return self.create_error(
                 "Missing 'content' in the first message of 'input.messages'.", 500
             )
 
-        fastapi_app = GatewayContainer.get_fastapi_app()
+        fastapi_app = self.get_fastapi_app()
         if fastapi_app is None:
             logger.error("FastAPI app is not available")
-            return create_error("Internal server error", 500)
+            return self.create_error("Internal server error", 500)
         # We send all messages to graph
 
         client = TestClient(fastapi_app)
@@ -249,9 +251,9 @@ class GatewayContainer:
 
             if response.status_code == HTTPStatus.OK:
                 return json.dumps(response.json())
-            else:
-                logger.error("Unexpected status code: %s", response.status_code)
-                return json.dumps({"error": "Unexpected status code"})
+
+            logger.error("Unexpected status code: %s", response.status_code)
+            return json.dumps({"error": "Unexpected status code"})
         except HTTPException as http_exc:
             error_detail = http_exc.detail
             messages.append({"role": "ai", "content": error_detail})
@@ -275,7 +277,7 @@ class GatewayContainer:
             logger.error("Unexpected error occurred: %s", error_detail)
             return json.dumps(payload)
 
-    async def start_data_plane(self, agent_container: AgentContainer):
+    async def start_server(self, agent_container: AgentContainer):
         """
         Asynchronously starts the data plane, which listens for incoming messages from the gateway,
         processes each message, and sends a reply back to the source agent.
@@ -313,7 +315,7 @@ class GatewayContainer:
 
                 logger.info("Received message %s, from src agent %s", payload, src)
 
-                msg = process_message(payload)
+                msg = self.process_message(payload)
 
                 # Publish reply message to src agent
                 await self.gateway.publish_to(msg.encode(), src)
@@ -326,3 +328,22 @@ class GatewayContainer:
             logger.info(
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
+
+    @classmethod
+    def create_error(cls, error, code) -> str:
+        """
+        Creates a reply message with an error code.
+
+        Parameters:
+            error (str): The error message that will be included in the reply.
+            code (int): The numerical code representing the error.
+
+        Returns:
+            str: A JSON-formatted string encapsulating the error message and error code.
+        """
+        payload = {
+            "message": error,
+            "error": code,
+        }
+        msg = json.dumps(payload)
+        return msg

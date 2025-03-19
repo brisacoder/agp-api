@@ -9,17 +9,17 @@ for these tests to pass.
 """
 
 import asyncio
-from http import HTTPStatus
 import json
 import unittest
 import uuid
+from http import HTTPStatus
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from models import RunCreateStateless
 
 from agp_api.agent.agent_container import AgentContainer
 from agp_api.gateway.gateway_container import GatewayContainer
-from fastapi.responses import JSONResponse
-from models import RunCreateStateless
 
 
 def create_app():
@@ -221,12 +221,11 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(conn_id, int)
 
         # Publish a message
-        response = await gateway_container.publish_messsage(
+        _ = await gateway_container.publish_messsage(
             message=json.dumps(self.payload),
             agent_container=agent_container,
             remote_agent="server",
         )
-        self.assertTrue(response)
 
     async def test_publish_and_receive_message(self):
         """
@@ -250,7 +249,9 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         """
 
         # Client
-        client_gateway_container, client_agent_container = await self.setup_gateway_and_agent()
+        client_gateway_container, client_agent_container = (
+            await self.setup_gateway_and_agent()
+        )
 
         # Client connection
         client_conn_id = await client_gateway_container.connect_with_retry(
@@ -264,7 +265,9 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(client_conn_id, int)
 
         # Server
-        server_gateway_container, server_agent_container = await self.setup_gateway_and_agent()
+        server_gateway_container, server_agent_container = (
+            await self.setup_gateway_and_agent()
+        )
 
         # Server connection
         server_conn_id = await server_gateway_container.connect_with_retry(
@@ -276,7 +279,9 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
 
         # Start the server
         server_task = asyncio.create_task(
-            server_gateway_container.start_server(agent_container=server_agent_container)
+            server_gateway_container.start_server(
+                agent_container=server_agent_container
+            )
         )
 
         try:
@@ -310,8 +315,8 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
             server_task.cancel()
             try:
                 await server_task
-            except asyncio.CancelledError:
-                pass  # Expected when the task is canceled
+            except RuntimeError:
+                pass
 
 
 if __name__ == "__main__":

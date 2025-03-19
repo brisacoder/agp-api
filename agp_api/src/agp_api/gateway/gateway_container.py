@@ -338,7 +338,7 @@ class GatewayContainer:
 
                 # Publish reply message to src agent
                 await self.gateway.publish_to(msg.encode(), src)
-        except asyncio.CancelledError as e:
+        except asyncio.exceptions.CancelledError as e:
             logger.error("Shutdown server")
             raise RuntimeError(
                 f"Shutdown server. Last source: {last_src}, Last message: {last_msg}"

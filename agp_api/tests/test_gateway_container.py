@@ -93,6 +93,23 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         "route": "/api/v1/runs",
     }
 
+    github = {
+        "github": {
+            "repo_url": "https://github.com/brisacoder/agp-api",
+            "github_token": "some_token",
+            "branch": "main",
+        }
+    }
+
+    payload_github = {
+        "agent_id": "remote_agent",
+        "input": github,
+        "model": "gpt-4o",
+        "metadata": {"id": str(uuid.uuid4())},
+        # Add the route field to emulate the REST API
+        "route": "/api/v1/runs",
+    }
+
     async def setup_gateway_and_agent(self) -> tuple[GatewayContainer, AgentContainer]:
         """
         Helper method to set up GatewayContainer and AgentContainer with configuration.
@@ -223,6 +240,47 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         # Publish a message
         _ = await gateway_container.publish_messsage(
             message=self.payload,
+            agent_container=agent_container,
+            remote_agent="server",
+        )
+
+    async def test_publish_github_no_messages(self):
+        """Test the publish_message functionality of the GatewayContainer.
+
+        This test case verifies that:
+        1. A connection can be established between gateway and agent containers
+        2. Messages can be published successfully through the gateway
+
+        The test follows these steps:
+        1. Sets up gateway and agent containers
+        2. Establishes connection with retry mechanism
+        3. Verifies connection ID is returned
+        4. Publishes a test message
+        5. Verifies response is received
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If any of the test conditions fail
+        """
+
+        gateway_container, agent_container = await self.setup_gateway_and_agent()
+
+        # Call connect_with_retry
+        conn_id = await gateway_container.connect_with_retry(
+            agent_container=agent_container,
+            max_duration=10,
+            initial_delay=1,
+            remote_agent="server",
+        )
+
+        # Assert that the connection ID is returned
+        self.assertIsInstance(conn_id, int)
+
+        # Publish a message
+        _ = await gateway_container.publish_messsage(
+            message=self.payload_github,
             agent_container=agent_container,
             remote_agent="server",
         )

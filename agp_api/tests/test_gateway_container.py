@@ -222,7 +222,7 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
 
         # Publish a message
         _ = await gateway_container.publish_messsage(
-            message=json.dumps(self.payload),
+            message=self.payload,
             agent_container=agent_container,
             remote_agent="server",
         )
@@ -290,7 +290,7 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
 
             # Publish a message
             await client_gateway_container.publish_messsage(
-                message=json.dumps(self.payload),
+                message=self.payload,
                 agent_container=client_agent_container,
                 remote_agent="server",
             )

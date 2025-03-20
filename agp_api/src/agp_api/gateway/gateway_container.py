@@ -194,14 +194,14 @@ class GatewayContainer:
 
         Args:
             payload (dict): A dictionary containing the message details. Expected keys include:
-            
+
             - `"agent_id"` (str): Identifier for the agent; must be non-empty.
-            
+
             - `"route"` (str): The API route to which the message should be sent.
-            
-            - `"input"` (dict): A dictionary with a key `"messages"`, which is a non-empty list where each element 
+
+            - `"input"` (dict): A dictionary with a key `"messages"`, which is a non-empty list where each element
             is a dictionary. The last message in this list should contain the human input under the `"content"` key.
-            
+
             - `"metadata"` (Optional[dict]): A dictionary that may contain an `"id"` for tracking purposes.
 
         Returns:
@@ -220,54 +220,25 @@ class GatewayContainer:
 
         # Validate that the assistant_id is not empty.
         if not payload.get("agent_id"):
-            return self.create_error("agent_id is required and cannot be empty.", 422)
+            return self.create_error(
+                agent_id=agent_id, 
+                error="agent_id is required and cannot be empty.", 
+                code=HTTPStatus.UNPROCESSABLE_ENTITY)
 
         # Extract the route from the message payload.
         # This step is done to emulate the behavior of the REST API.
         route = payload.get("route")
         if not route:
-            return self.create_error("Not Found.", 404)
-
-        message_id = None
-        # Validate the config section: ensure that config.tags is a non-empty list.
-        if (metadata := payload.get("metadata", None)) is not None:
-            message_id = metadata.get("id")
-
-        # -----------------------------------------------
-        # Extract the human input content from the payload.
-        # We expect the content to be located at: payload["input"]["messages"][0]["content"]
-        # -----------------------------------------------
-
-        # Retrieve the 'input' field and ensure it is a dictionary.
-        input_field = payload.get("input")
-        if not isinstance(input_field, dict):
-            return self.create_error("The 'input' field should be a dictionary.", 500)
-
-        # Retrieve the 'messages' list from the 'input' dictionary.
-        messages = input_field.get("messages")
-        if not isinstance(messages, list) or not messages:
-            return self.create_error(
-                "The 'input.messages' field should be a non-empty list.", 500
-            )
-
-        # Access the last message in the list.
-        last_message = messages[-1]
-        if not isinstance(last_message, dict):
-            return self.create_error(
-                "The first element in 'input.messages' should be a dictionary.", 500
-            )
-
-        # Extract the 'content' from the first message.
-        human_input_content = last_message.get("content")
-        if human_input_content is None:
-            return self.create_error(
-                "Missing 'content' in the first message of 'input.messages'.", 500
-            )
+            return self.create_error(agent_id=agent_id, error=HTTPStatus.NOT_FOUND.name, code=HTTPStatus.NOT_FOUND)
 
         fastapi_app = self.get_fastapi_app()
         if fastapi_app is None:
             logger.error("FastAPI app is not available")
-            return self.create_error("Internal server error", 500)
+            return self.create_error(
+                agent_id=agent_id,
+                error="FastAPI app is not available",
+                code=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
         # We send all messages to graph
 
         client = TestClient(fastapi_app)
@@ -282,24 +253,16 @@ class GatewayContainer:
             return json.dumps({"error": "Unexpected status code"})
         except HTTPException as http_exc:
             error_detail = http_exc.detail
-            messages.append({"role": "ai", "content": error_detail})
-            payload = {
-                "agent_id": agent_id,
-                "output": {"messages": messages},
-                "model": "gpt-4o",
-                "metadata": {"id": message_id},
-            }
+            error_msg = self.create_error(
+                agent_id=agent_id, error=error_detail, code=http_exc.status_code
+            )
             logger.error("HTTP error occurred: %s", error_detail)
-            return json.dumps(payload)
+            return json.dumps(error_msg)
         except Exception as exc:
             error_detail = str(exc)
-            messages.append({"role": "ai", "content": error_detail})
-            payload = {
-                "agent_id": agent_id,
-                "output": {"messages": messages},
-                "model": "gpt-4o",
-                "metadata": {"id": message_id},
-            }
+            error_msg = self.create_error(
+                agent_id=agent_id, error=error_detail, code=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
             logger.error("Unexpected error occurred: %s", error_detail)
             return json.dumps(payload)
 
@@ -355,9 +318,14 @@ class GatewayContainer:
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
 
-    async def publish_messsage(self, message: Dict[str, Any], agent_container: AgentContainer, remote_agent: str) -> Any:
+    async def publish_messsage(
+        self,
+        message: Dict[str, Any],
+        agent_container: AgentContainer,
+        remote_agent: str,
+    ):
         """
-        Sends a message (JSON string) to the remote endpoint 
+        Sends a message (JSON string) to the remote endpoint
 
         Args:
             msg (str): A JSON string representing the request payload.
@@ -368,12 +336,14 @@ class GatewayContainer:
 
         try:
             json_message = json.dumps(message)
-            await self.gateway.publish(json_message.encode(), organization, namespace, remote_agent)
+            await self.gateway.publish(
+                json_message.encode(), organization, namespace, remote_agent
+            )
         except Exception as e:
             raise ValueError(f"Error sending message: {e}") from e
 
     @classmethod
-    def create_error(cls, error, code) -> str:
+    def create_error(cls, error, code, agent_id: str | None) -> str:
         """
         Creates a reply message with an error code.
 
@@ -387,6 +357,7 @@ class GatewayContainer:
         payload = {
             "message": error,
             "error": code,
+            "agent_id": agent_id,
         }
         msg = json.dumps(payload)
         return msg

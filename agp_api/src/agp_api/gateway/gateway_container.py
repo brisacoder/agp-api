@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from ..agent.agent_container import AgentContainer
 
+from langsmith import traceable
+
 logger = logging.getLogger(__name__)
 
 
@@ -221,15 +223,20 @@ class GatewayContainer:
         # Validate that the assistant_id is not empty.
         if not payload.get("agent_id"):
             return self.create_error(
-                agent_id=agent_id, 
-                error="agent_id is required and cannot be empty.", 
-                code=HTTPStatus.UNPROCESSABLE_ENTITY)
+                agent_id=agent_id,
+                error="agent_id is required and cannot be empty.",
+                code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
 
         # Extract the route from the message payload.
         # This step is done to emulate the behavior of the REST API.
         route = payload.get("route")
         if not route:
-            return self.create_error(agent_id=agent_id, error=HTTPStatus.NOT_FOUND.name, code=HTTPStatus.NOT_FOUND)
+            return self.create_error(
+                agent_id=agent_id,
+                error=HTTPStatus.NOT_FOUND.name,
+                code=HTTPStatus.NOT_FOUND,
+            )
 
         fastapi_app = self.get_fastapi_app()
         if fastapi_app is None:
@@ -237,13 +244,14 @@ class GatewayContainer:
             return self.create_error(
                 agent_id=agent_id,
                 error="FastAPI app is not available",
-                code=HTTPStatus.INTERNAL_SERVER_ERROR
+                code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
         # We send all messages to graph
 
         client = TestClient(fastapi_app)
         try:
-            response = client.post(route, json=payload)
+            headers = payload.get("headers", {})
+            response = client.post(route, json=payload, headers=headers)
             response.raise_for_status()
 
             if response.status_code == HTTPStatus.OK:
@@ -261,7 +269,9 @@ class GatewayContainer:
         except Exception as exc:
             error_detail = str(exc)
             error_msg = self.create_error(
-                agent_id=agent_id, error=error_detail, code=HTTPStatus.INTERNAL_SERVER_ERROR
+                agent_id=agent_id,
+                error=error_detail,
+                code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
             logger.error("Unexpected error occurred: %s", error_detail)
             return json.dumps(payload)
@@ -318,6 +328,7 @@ class GatewayContainer:
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
 
+    @traceable
     async def publish_messsage(
         self,
         message: Dict[str, Any],

@@ -1,18 +1,18 @@
 """Module gateway_holder: Contains the GatewayHolder class for managing the Gateway instance and FastAPI app."""
 
 import asyncio
-from http import HTTPStatus
 import json
 import logging
 import time
+from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 from agp_bindings import Gateway, GatewayConfig
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
-from ..agent.agent_container import AgentContainer
 
-from langsmith import traceable
+from ..agent.agent_container import AgentContainer
+from ..route.route_manager import RouteManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class GatewayContainer:
         gateway (Gateway): An instance of the Gateway that this container encapsulates.
         fastapi_app (Optional[FastAPI]): An instance of the FastAPI application used to process
             incoming packets from the AGP.
+        route_manager (RouteManager): Manages routes for agent communication.
     """
 
     def __init__(
@@ -43,6 +44,75 @@ class GatewayContainer:
         """
         self.gateway = gateway if gateway is not None else Gateway()
         self.fastapi_app = fastapi_app
+        self.route_manager = RouteManager()
+
+    async def register_route(self, organization, namespace, remote_agent):
+        """
+        Registers a route for a remote agent within a specific organization and namespace.
+        This method sets the route on the gateway and adds it to the local route registry.
+        If the operation fails, the error is logged and the exception is re-raised.
+
+        Parameters:
+            organization (str): The organization identifier
+            namespace (str): The namespace within the organization
+            remote_agent (str): The identifier of the remote agent
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If setting the route on the gateway fails
+        """
+
+        try:
+            await self.gateway.set_route(
+                organization=organization,
+                namespace=namespace,
+                agent=remote_agent,
+            )
+            # Only add route if set_route succeeds
+            self.route_manager.add_route(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=remote_agent,
+            )
+        except Exception as e:
+            logger.error("Failed to set route: %s", e)
+            raise
+
+    async def deregister_route(self, organization, namespace, remote_agent):
+        """
+        Deregisters a route for a remote agent within a specific organization and namespace.
+        This method clears the route on the gateway and removes it from the local route registry.
+        If the operation fails, the error is logged and the exception is re-raised.
+
+        Parameters:
+            organization (str): The organization identifier
+            namespace (str): The namespace within the organization
+            remote_agent (str): The identifier of the remote agent
+
+        Returns:
+            bool: True if the route was successfully removed, False if it didn't exist
+
+        Raises:
+            Exception: If clearing the route on the gateway fails
+        """
+        try:
+            # Remote route from Gateway instance
+            await self.gateway.remove_route(
+                organization=organization,
+                namespace=namespace,
+                agent=remote_agent,
+            )
+            # Only delete route if remove_route succeeds
+            return self.route_manager.delete_route(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=remote_agent,
+            )
+        except Exception as e:
+            logger.error("Failed to remove route: %s", e)
+            raise
 
     def get_fastapi_app(self) -> Optional[FastAPI]:
         """
@@ -175,7 +245,10 @@ class GatewayContainer:
 
         while time.time() - start_time < max_duration:
             try:
-                return await self._connect(agent_container, remote_agent)
+                remaining_time = max_duration - (time.time() - start_time)
+                if remaining_time <= 0:
+                    break
+                return await asyncio.wait_for(self._connect(agent_container, remote_agent), timeout=remaining_time)
             except Exception as e:
                 logger.warning(
                     "Connection attempt failed: %s. Retrying in %s seconds...", e, delay
@@ -265,7 +338,7 @@ class GatewayContainer:
                 agent_id=agent_id, error=error_detail, code=http_exc.status_code
             )
             logger.error("HTTP error occurred: %s", error_detail)
-            return json.dumps(error_msg)
+            return error_msg
         except Exception as exc:
             error_detail = str(exc)
             error_msg = self.create_error(
@@ -274,7 +347,7 @@ class GatewayContainer:
                 code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
             logger.error("Unexpected error occurred: %s", error_detail)
-            return json.dumps(payload)
+            return error_msg
 
     async def start_server(self, agent_container: AgentContainer):
         """
@@ -328,7 +401,6 @@ class GatewayContainer:
                 "Shutting down agent %s/%s/%s", organization, namespace, local_agent
             )
 
-    @traceable
     async def publish_messsage(
         self,
         message: Dict[str, Any],

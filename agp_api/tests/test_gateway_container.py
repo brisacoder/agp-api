@@ -8,72 +8,19 @@ Note: The AGP Gateway must be running and accessible at the configured endpoint
 for these tests to pass.
 """
 
-import asyncio
 import json
+import time
 import unittest
-import uuid
 from http import HTTPStatus
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from models import RunCreateStateless
 
 from agp_api.agent.agent_container import AgentContainer
 from agp_api.gateway.gateway_container import GatewayContainer
 
-
-def create_app():
-    """Creates and configures a FastAPI application with a single POST endpoint.
-    The application includes a '/api/v1/runs' endpoint that processes run creation requests.
-    It validates the incoming payload structure and returns a formatted response.
-    Returns:
-        FastAPI: A configured FastAPI application instance with the following endpoint:
-            - POST /api/v1/runs: Creates a new run with the provided payload
-    Raises:
-        ValueError: If the input payload structure is invalid:
-            - When 'input' field is not a dictionary
-            - When 'input.messages' is not a non-empty list
-    Example payload:
-        {
-            "agent_id": "some_agent_id",
-            "metadata": {"id": "message_id"},
-            "input": {
-                "messages": [...]
-    """
-    app = FastAPI()
-
-    @app.post("/api/v1/runs")
-    def create_run(body: RunCreateStateless):
-        payload = body.model_dump()
-
-        # Extract agent_id from the payload
-        agent_id = payload.get("agent_id")
-
-        message_id = ""
-        # Validate the metadata section: ensure that metadata.id exists if provided.
-        if (metadata := payload.get("metadata", None)) is not None:
-            message_id = metadata.get("id")
-
-        input_field = payload.get("input")
-        if not isinstance(input_field, dict):
-            raise ValueError("The 'input' field should be a dictionary.")
-
-        # Retrieve the 'messages' list from the 'input' dictionary.
-        messages = input_field.get("messages")
-        if not isinstance(messages, list) or not messages:
-            raise ValueError("The 'input.messages' field should be a non-empty list.")
-
-        # Payload to send to autogen server at /runs endpoint
-        response_payload = {
-            "agent_id": agent_id,
-            "output": [{"role": "assistant", "content": "Hi!"}],
-            "model": "gpt-4o",
-            "metadata": {"id": message_id},
-        }
-
-        return JSONResponse(content=response_payload, status_code=HTTPStatus.OK)
-
-    return app
+from fast_api_app import create_app
+from payload import Payload
 
 
 class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
@@ -83,32 +30,6 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
     This test suite verifies the functionality of the `GatewayContainer` class,
     including its ability to connect to an AGP Gateway with retry logic.
     """
-
-    payload = {
-        "agent_id": "remote_agent",
-        "input": {"messages": [{"role": "assistant", "content": "Hello, world!"}]},
-        "model": "gpt-4o",
-        "metadata": {"id": str(uuid.uuid4())},
-        # Add the route field to emulate the REST API
-        "route": "/api/v1/runs",
-    }
-
-    github = {
-        "github": {
-            "repo_url": "https://github.com/brisacoder/agp-api",
-            "github_token": "some_token",
-            "branch": "main",
-        }
-    }
-
-    payload_github = {
-        "agent_id": "remote_agent",
-        "input": github,
-        "model": "gpt-4o",
-        "metadata": {"id": str(uuid.uuid4())},
-        # Add the route field to emulate the REST API
-        "route": "/api/v1/runs",
-    }
 
     async def setup_gateway_and_agent(self) -> tuple[GatewayContainer, AgentContainer]:
         """
@@ -120,261 +41,197 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         gateway_container.set_config(endpoint="http://127.0.0.1:46357", insecure=True)
         return gateway_container, agent_container
 
-    async def test_server_connect(self):
+    @patch(
+        "agp_api.gateway.gateway_container.Gateway.remove_route", new_callable=AsyncMock
+    )
+    @patch(
+        "agp_api.gateway.gateway_container.Gateway.set_route", new_callable=AsyncMock
+    )
+    async def test_routes(self, mock_set_route, mock_remove_route):
         """
-        Test the `connect_with_retry` method of GatewayContainer.
+        Test registering and deregistering routes with the gateway.
 
-        This test verifies that the `connect_with_retry` method successfully
-        establishes a connection to an agent container and returns a valid
-        connection ID.
-
-        Note: The AGP Gateway must be running and accessible at
-        http://127.0.0.1:46357 for this test to pass.
+        This test verifies that the gateway can properly register and
+        deregister routes for remote agents.
         """
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
+        gateway_container, _ = await self.setup_gateway_and_agent()
 
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container, max_duration=10, initial_delay=1
+        organization = "test_org"
+        namespace = "test_namespace"
+        remote_agent = "test_agent"
+
+        # Test registering a route
+        await gateway_container.register_route(organization, namespace, remote_agent)
+        mock_set_route.assert_awaited_once_with(
+            organization=organization, namespace="test_namespace", agent="test_agent"
         )
 
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-    async def test_client_connect(self):
-        """
-        Test the `connect_with_retry` method of GatewayContainer.
-
-        This test verifies that the `connect_with_retry` method successfully
-        establishes a connection to an agent container and returns a valid
-        connection ID.
-
-        Note: The AGP Gateway must be running and accessible at
-        http://127.0.0.1:46357 for this test to pass.
-        """
-
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
-
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-    async def test_start_server(self):
-        """
-        Test the `connect_with_retry` method of GatewayContainer.
-
-        This test verifies that the `connect_with_retry` method successfully
-        establishes a connection to an agent container and returns a valid
-        connection ID.
-
-        Note: The AGP Gateway must be running and accessible at
-        http://127.0.0.1:46357 for this test to pass.
-        """
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
-
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container, max_duration=10, initial_delay=1
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-        server_task = asyncio.create_task(
-            gateway_container.start_server(agent_container=agent_container)
-        )
-        # Wait briefly to ensure the server has started
-        await asyncio.sleep(1)
-
-        try:
-            server_task.cancel()
-        except asyncio.CancelledError:
-            pass  # Expected when the task is canceled
-
-        try:
-            await server_task
-        except RuntimeError:
-            pass  # Expected when the task is canceled
-
-    async def test_publish_message(self):
-        """Test the publish_message functionality of the GatewayContainer.
-
-        This test case verifies that:
-        1. A connection can be established between gateway and agent containers
-        2. Messages can be published successfully through the gateway
-
-        The test follows these steps:
-        1. Sets up gateway and agent containers
-        2. Establishes connection with retry mechanism
-        3. Verifies connection ID is returned
-        4. Publishes a test message
-        5. Verifies response is received
-
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If any of the test conditions fail
-        """
-
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
-
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-        # Publish a message
-        _ = await gateway_container.publish_messsage(
-            message=self.payload,
-            agent_container=agent_container,
-            remote_agent="server",
-        )
-
-    async def test_publish_github_no_messages(self):
-        """Test the publish_message functionality of the GatewayContainer.
-
-        This test case verifies that:
-        1. A connection can be established between gateway and agent containers
-        2. Messages can be published successfully through the gateway
-
-        The test follows these steps:
-        1. Sets up gateway and agent containers
-        2. Establishes connection with retry mechanism
-        3. Verifies connection ID is returned
-        4. Publishes a test message
-        5. Verifies response is received
-
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If any of the test conditions fail
-        """
-
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
-
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-        # Publish a message
-        _ = await gateway_container.publish_messsage(
-            message=self.payload_github,
-            agent_container=agent_container,
-            remote_agent="server",
-        )
-
-    async def test_publish_and_receive_message(self):
-        """
-        Tests the publish and receive message functionality of the gateway container.
-        This test verifies:
-        1. Successful connection establishment between gateway and agent containers
-        2. Proper server startup
-        3. Message publishing functionality
-        4. Correct server shutdown
-        The test:
-        - Sets up gateway and agent containers
-        - Establishes connection with retry mechanism
-        - Starts server in async task
-        - Publishes test message
-        - Verifies successful message delivery
-        - Performs clean server shutdown
-        Returns:
-            None
-        Raises:
-            AssertionError: If connection ID is not an integer or if message publish fails
-        """
-
-        # Client
-        client_gateway_container, client_agent_container = (
-            await self.setup_gateway_and_agent()
-        )
-
-        # Client connection
-        client_conn_id = await client_gateway_container.connect_with_retry(
-            agent_container=client_agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(client_conn_id, int)
-
-        # Server
-        server_gateway_container, server_agent_container = (
-            await self.setup_gateway_and_agent()
-        )
-
-        # Server connection
-        server_conn_id = await server_gateway_container.connect_with_retry(
-            agent_container=server_agent_container, max_duration=10, initial_delay=1
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(server_conn_id, int)
-
-        # Start the server
-        server_task = asyncio.create_task(
-            server_gateway_container.start_server(
-                agent_container=server_agent_container
+        # Verify route exists in the route manager
+        self.assertTrue(
+            gateway_container.route_manager.route_exists(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=remote_agent,
             )
         )
 
-        try:
-            # Wait briefly to ensure the server has started
-            await asyncio.sleep(1)
+        # Test deregistering a route
+        result = await gateway_container.deregister_route(
+            organization, namespace, remote_agent
+        )
+        self.assertTrue(result)
+        mock_remove_route.assert_awaited_once_with(
+            organization=organization, namespace="test_namespace", agent="test_agent"
+        )
 
-            # Publish a message
-            await client_gateway_container.publish_messsage(
-                message=self.payload,
-                agent_container=client_agent_container,
-                remote_agent="server",
+        self.assertFalse(
+            gateway_container.route_manager.route_exists(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=remote_agent,
             )
-            _, recv = await client_gateway_container.gateway.receive()
-            response_data = json.loads(recv.decode("utf8"))
+        )
 
-            expected_metadata_id = self.payload["metadata"]["id"]
+        # Test deregistering a non-existent route
+        result = await gateway_container.deregister_route(
+            organization, namespace, "non_existent"
+        )
+        self.assertFalse(result)
 
-            # Expected response data structure
-            expected_response = {
-                "agent_id": "remote_agent",
-                "output": [{"role": "assistant", "content": "Hi!"}],
-                "model": "gpt-4o",
-                "metadata": {"id": expected_metadata_id},
-            }
+    async def test_gateway_initialization_and_config(self):
+        """
+        Test gateway initialization and configuration methods.
 
-            # Assert that the response data matches the expected structure
-            self.assertDictEqual(response_data, expected_response)
+        This test verifies that a gateway can be initialized with various
+        configurations and that the getter/setter methods work properly.
+        """
 
-        finally:
-            # Ensure the server task is canceled and awaited
-            server_task.cancel()
-            try:
-                await server_task
-            except RuntimeError:
-                pass
+        # Test initialization with no parameters
+        with patch("agp_api.gateway.gateway_container.Gateway") as MockGateway:
+            gateway_container = GatewayContainer()
+            self.assertIsNotNone(gateway_container.gateway)
+            self.assertIsNone(gateway_container.fastapi_app)
+
+        # Test initialization with parameters
+        mock_gateway = MagicMock()
+        mock_app = FastAPI()
+        gateway_container = GatewayContainer(gateway=mock_gateway, fastapi_app=mock_app)
+        self.assertEqual(gateway_container.gateway, mock_gateway)
+        self.assertEqual(gateway_container.fastapi_app, mock_app)
+
+        gateway_container.set_fastapi_app(mock_app)
+        self.assertEqual(gateway_container.get_fastapi_app(), mock_app)
+
+        new_gateway = MagicMock()
+        gateway_container.set_gateway(new_gateway)
+        self.assertEqual(gateway_container.get_gateway(), new_gateway)
+
+        # Test create_gateway
+        with patch("agp_api.gateway.gateway_container.Gateway") as MockGateway:
+            mock_instance = MagicMock()
+            MockGateway.return_value = mock_instance
+            created_gateway = gateway_container.create_gateway()
+            self.assertEqual(gateway_container.gateway, created_gateway)
+
+        # Test set_config
+        custom_endpoint = "http://custom:8000"
+        mock_config = MagicMock()
+        gateway_container.gateway = MagicMock()
+        gateway_container.gateway.config = mock_config
+        gateway_container.set_config(endpoint=custom_endpoint, insecure=True)
+        self.assertEqual(gateway_container.gateway.config.endpoint, custom_endpoint)
+        self.assertTrue(gateway_container.gateway.config.insecure)
+
+    async def test_process_message_error_cases(self):
+        """
+        Test error handling in the process_message method.
+
+        This test verifies proper error handling for various invalid payload cases.
+        """
+        gateway_container = GatewayContainer()
+
+        response = gateway_container.process_message(Payload.no_agent_id)
+        response_data = json.loads(response)
+        self.assertIn("message", response_data)
+        self.assertEqual(response_data["error"], HTTPStatus.UNPROCESSABLE_ENTITY)
+
+        # Test with missing route
+        payload_no_route = {
+            "agent_id": "test_agent",
+            "input": {"messages": [{"role": "assistant", "content": "Hello"}]},
+        }
+        response = gateway_container.process_message(payload_no_route)
+        response_data = json.loads(response)
+        self.assertIn("message", response_data)
+        self.assertEqual(response_data["error"], HTTPStatus.NOT_FOUND)
+
+        response = gateway_container.process_message(Payload.generic)
+        response_data = json.loads(response)
+        self.assertIn("message", response_data)
+        self.assertEqual(response_data["error"], HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    async def test_connect_retry_timeout(self):
+        """
+        Test timeout behavior in connect_with_retry method.
+
+        This test verifies that the method correctly times out after the specified duration.
+        """
+
+        gateway_container, agent_container = await self.setup_gateway_and_agent()
+
+        # Test that connect_with_retry times out after a short duration
+        start_time = time.time()
+
+        with self.assertRaises(TimeoutError):
+            await gateway_container.connect_with_retry(
+                agent_container=agent_container,
+                max_duration=2,  # Short timeout for testing
+                initial_delay=0.5,
+            )
+
+        elapsed_time = time.time() - start_time
+        # Verify that timeout happened (with some margin)
+        self.assertGreaterEqual(elapsed_time, 1.8)
+        self.assertLessEqual(elapsed_time, 4)  # Allow some leeway for test execution
+
+    async def test_create_error_method(self):
+        """
+        Test the create_error class method.
+
+        This test verifies that error messages are correctly formatted.
+        """
+        # Test with all parameters
+        error_msg = "Test error message"
+        error_code = HTTPStatus.BAD_REQUEST
+        agent_id = "test_agent"
+
+        error_response = json.loads(
+            GatewayContainer.create_error(error_msg, error_code, agent_id)
+        )
+
+        self.assertEqual(error_response["message"], error_msg)
+        self.assertEqual(error_response["error"], error_code)
+        self.assertEqual(error_response["agent_id"], agent_id)
+
+        # Test with None agent_id
+        error_response = json.loads(
+            GatewayContainer.create_error(error_msg, error_code, None)
+        )
+        self.assertEqual(error_response["agent_id"], None)
+
+    async def test_server_with_invalid_payload(self):
+        """
+        Test server processing of invalid payloads.
+
+        This test verifies that the server correctly handles and responds to invalid payloads.
+        """
+        gateway_container, _ = await self.setup_gateway_and_agent()
+
+        # Test process_message directly
+        response = gateway_container.process_message(Payload.no_messages)
+
+        # Since we're returning the payload on exceptions, we should get the original payload
+        self.assertEqual(json.loads(response)["message"], "The input.messages field should be a non-empty list.")
 
 
 if __name__ == "__main__":

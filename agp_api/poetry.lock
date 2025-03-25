@@ -2,28 +2,33 @@
 
 [[package]]
 name = "agp-bindings"
-version = "0.1.10"
+version = "0.1.14"
 description = "AGP Rust bindings for Python"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "agp_bindings-0.1.10-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:798659b5678863188a7c1329f03f122a0e2cda236e8794dc91c4a94d4690ffd9"},
-    {file = "agp_bindings-0.1.10-cp310-cp310-manylinux_2_38_x86_64.whl", hash = "sha256:c73c5dcfa469de9d128f9b68383733fdefea2e4aa9b8b701e07c1ec86d955762"},
-    {file = "agp_bindings-0.1.10-cp310-cp310-win_amd64.whl", hash = "sha256:f61004c2a67ccc4f9958463fbb74807c51ee546ac58aa90a33fb62a081aee0f5"},
-    {file = "agp_bindings-0.1.10-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:accb28adc47a92af2bc054dc2f34dc8a672b5d324e91485221e25b37d729f091"},
-    {file = "agp_bindings-0.1.10-cp311-cp311-manylinux_2_38_x86_64.whl", hash = "sha256:9b436b6b6dc22dcdf22d7e1a4a878d7b8ad2f6f15324bfa41fea1830258d0e93"},
-    {file = "agp_bindings-0.1.10-cp311-cp311-win_amd64.whl", hash = "sha256:2d85bdeb75402088ea012f77608d92ca02aa3796a73c041904fdbb98b50b9286"},
-    {file = "agp_bindings-0.1.10-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:624239ff8a26f479b745a3acb3bb031272a5264efd9917b818d007604b6d7da6"},
-    {file = "agp_bindings-0.1.10-cp312-cp312-manylinux_2_38_x86_64.whl", hash = "sha256:023df72626b8b6da25249866c6a99e3ee43ad0147c0e9731aa28bde0b3924fdf"},
-    {file = "agp_bindings-0.1.10-cp312-cp312-win_amd64.whl", hash = "sha256:dda9e9599296aeb3ec9d28c88c697606117745d6eb21d40a924eb7dd71e54fcf"},
-    {file = "agp_bindings-0.1.10-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3efc4ffc537dec7a64f54edb7e26f64af97d238ebb9b91e509a4efd5ba177466"},
-    {file = "agp_bindings-0.1.10-cp313-cp313-manylinux_2_38_x86_64.whl", hash = "sha256:259fb44e7cf67c07364dde3bcc3959f84bb178c1f02049e79773f8a2170a1f5c"},
-    {file = "agp_bindings-0.1.10-cp313-cp313-win_amd64.whl", hash = "sha256:545259817dea9f9dad29e8325023d919d585bbe7f3a7eb0e9764deeef49f824c"},
-    {file = "agp_bindings-0.1.10-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:1b47439f9851b83a51f011702ebc5627fe78adcac09c93e8935a338ff33c41ae"},
-    {file = "agp_bindings-0.1.10-cp39-cp39-manylinux_2_38_x86_64.whl", hash = "sha256:a4ab0148b0e65128e20e90641c23acd542688cbada7d4292be9eeda1efa44f5a"},
-    {file = "agp_bindings-0.1.10-cp39-cp39-win_amd64.whl", hash = "sha256:8b7dbc330c66b9b7605214c15443bb12b7a4bce5b5af6e73dca204829ab43a4c"},
-    {file = "agp_bindings-0.1.10.tar.gz", hash = "sha256:a542e65110a706cd3d0209fd02b86da6954ca8cad9ee734d99d48dcee2ca99bb"},
+    {file = "agp_bindings-0.1.14-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:09091e3ed7e223f1d13c39826164e4c8ef7a273af9be18ad17b5898f248a99bf"},
+    {file = "agp_bindings-0.1.14-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b233d66dc028b8a9632b4e06094e3bd92b741f7eeccbc8ad279691ad4075b038"},
+    {file = "agp_bindings-0.1.14-cp310-cp310-manylinux_2_38_x86_64.whl", hash = "sha256:ee21bfd91c88492d535c1e87c4092ac57b9e7174f1c21376e15f8483b277ee63"},
+    {file = "agp_bindings-0.1.14-cp310-cp310-win_amd64.whl", hash = "sha256:2ad33703ca52c467e8e245155da0ec900c28fd64d14efc07f7d69b934821fe0d"},
+    {file = "agp_bindings-0.1.14-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:31c4ae8f23f1483f770bb0044c9cef3a23fec0bcd3d4107e4a5a74bd96f49322"},
+    {file = "agp_bindings-0.1.14-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7d51032b415bcc60405a572c001daae43c01e76d893ebbd597b8e42ee9f1be54"},
+    {file = "agp_bindings-0.1.14-cp311-cp311-manylinux_2_38_x86_64.whl", hash = "sha256:dacfc6067b6b78a7726daf051c6fd5b25dce01747b42f8d611658f859d2562b7"},
+    {file = "agp_bindings-0.1.14-cp311-cp311-win_amd64.whl", hash = "sha256:305f05b28fa367bc5677c4e9d0bfd2414f14113835775f49778e6569ca1fb24b"},
+    {file = "agp_bindings-0.1.14-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:d5a4abf9b1555e8b895797568a5069b1e5501a3757cf4873a7538b30e349ed5b"},
+    {file = "agp_bindings-0.1.14-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b9e9c42eeaffa0b2c001f8adca3ef8166308fafc7d0b7b9b94f4e920974c0952"},
+    {file = "agp_bindings-0.1.14-cp312-cp312-manylinux_2_38_x86_64.whl", hash = "sha256:37a1a89049741195acfae0a2620c76f00fd4ec27268e3d6e824f2c7ff51e1b9f"},
+    {file = "agp_bindings-0.1.14-cp312-cp312-win_amd64.whl", hash = "sha256:c4ab3d9e128574bfc8900a5b90edededb995064aa241a3df5d83b6221107a912"},
+    {file = "agp_bindings-0.1.14-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:07f3bd84f7ff6c29421ee0bbfa603ed3bd42866b825a68e93f160c11f55d749d"},
+    {file = "agp_bindings-0.1.14-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4d699fa8ba5ee3777f050142c0bf6729ec93c887030fb38789723f6e85d4d1ff"},
+    {file = "agp_bindings-0.1.14-cp313-cp313-manylinux_2_38_x86_64.whl", hash = "sha256:825ddb56d69fd93e3930f8b4b85bf69af8447da814c38e2ab5d540fb1830fc8d"},
+    {file = "agp_bindings-0.1.14-cp313-cp313-win_amd64.whl", hash = "sha256:516737715d18b6c8b45b480ed33066a3973e912fd7faa5c8892c7d13cc8c7a5a"},
+    {file = "agp_bindings-0.1.14-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:8905223be245be728bb65d1fc83e4f9cd5bac08d990d5279ac7e44ce121b8f6a"},
+    {file = "agp_bindings-0.1.14-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b4ba383fe18dbf4df7fc5591b9c7efde41d4bd092d730270137919309501d071"},
+    {file = "agp_bindings-0.1.14-cp39-cp39-manylinux_2_38_x86_64.whl", hash = "sha256:dc31e2590198300dfc3c845d99be6d66385b8288e264e9a6c60c96b1c7275cdf"},
+    {file = "agp_bindings-0.1.14-cp39-cp39-win_amd64.whl", hash = "sha256:2cdf04276593650dc39dbe5cab7059a2e31632702c1166535f2e9d6d6af60b14"},
+    {file = "agp_bindings-0.1.14.tar.gz", hash = "sha256:d4e6703e20325a1106cfd6a62a59be41e5b1925e12c69eabf4c4cfd36211600e"},
 ]
 
 [[package]]
@@ -249,6 +254,29 @@ doq = ["aioquic (>=1.0.0)"]
 idna = ["idna (>=3.7)"]
 trio = ["trio (>=0.23)"]
 wmi = ["wmi (>=1.5.1)"]
+
+[[package]]
+name = "docker"
+version = "7.1.0"
+description = "A Python library for the Docker Engine API."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0"},
+    {file = "docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c"},
+]
+
+[package.dependencies]
+pywin32 = {version = ">=304", markers = "sys_platform == \"win32\""}
+requests = ">=2.26.0"
+urllib3 = ">=1.26.0"
+
+[package.extras]
+dev = ["coverage (==7.2.7)", "pytest (==7.4.2)", "pytest-cov (==4.1.0)", "pytest-timeout (==2.1.0)", "ruff (==0.1.8)"]
+docs = ["myst-parser (==0.18.0)", "sphinx (==5.1.1)"]
+ssh = ["paramiko (>=2.4.3)"]
+websockets = ["websocket-client (>=1.3.0)"]
 
 [[package]]
 name = "docutils"
@@ -779,6 +807,33 @@ groups = ["main"]
 files = [
     {file = "python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104"},
     {file = "python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13"},
+]
+
+[[package]]
+name = "pywin32"
+version = "310"
+description = "Python for Window Extensions"
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "sys_platform == \"win32\""
+files = [
+    {file = "pywin32-310-cp310-cp310-win32.whl", hash = "sha256:6dd97011efc8bf51d6793a82292419eba2c71cf8e7250cfac03bba284454abc1"},
+    {file = "pywin32-310-cp310-cp310-win_amd64.whl", hash = "sha256:c3e78706e4229b915a0821941a84e7ef420bf2b77e08c9dae3c76fd03fd2ae3d"},
+    {file = "pywin32-310-cp310-cp310-win_arm64.whl", hash = "sha256:33babed0cf0c92a6f94cc6cc13546ab24ee13e3e800e61ed87609ab91e4c8213"},
+    {file = "pywin32-310-cp311-cp311-win32.whl", hash = "sha256:1e765f9564e83011a63321bb9d27ec456a0ed90d3732c4b2e312b855365ed8bd"},
+    {file = "pywin32-310-cp311-cp311-win_amd64.whl", hash = "sha256:126298077a9d7c95c53823934f000599f66ec9296b09167810eb24875f32689c"},
+    {file = "pywin32-310-cp311-cp311-win_arm64.whl", hash = "sha256:19ec5fc9b1d51c4350be7bb00760ffce46e6c95eaf2f0b2f1150657b1a43c582"},
+    {file = "pywin32-310-cp312-cp312-win32.whl", hash = "sha256:8a75a5cc3893e83a108c05d82198880704c44bbaee4d06e442e471d3c9ea4f3d"},
+    {file = "pywin32-310-cp312-cp312-win_amd64.whl", hash = "sha256:bf5c397c9a9a19a6f62f3fb821fbf36cac08f03770056711f765ec1503972060"},
+    {file = "pywin32-310-cp312-cp312-win_arm64.whl", hash = "sha256:2349cc906eae872d0663d4d6290d13b90621eaf78964bb1578632ff20e152966"},
+    {file = "pywin32-310-cp313-cp313-win32.whl", hash = "sha256:5d241a659c496ada3253cd01cfaa779b048e90ce4b2b38cd44168ad555ce74ab"},
+    {file = "pywin32-310-cp313-cp313-win_amd64.whl", hash = "sha256:667827eb3a90208ddbdcc9e860c81bde63a135710e21e4cb3348968e4bd5249e"},
+    {file = "pywin32-310-cp313-cp313-win_arm64.whl", hash = "sha256:e308f831de771482b7cf692a1f308f8fca701b2d8f9dde6cc440c7da17e47b33"},
+    {file = "pywin32-310-cp38-cp38-win32.whl", hash = "sha256:0867beb8addefa2e3979d4084352e4ac6e991ca45373390775f7084cc0209b9c"},
+    {file = "pywin32-310-cp38-cp38-win_amd64.whl", hash = "sha256:30f0a9b3138fb5e07eb4973b7077e1883f558e40c578c6925acc7a94c34eaa36"},
+    {file = "pywin32-310-cp39-cp39-win32.whl", hash = "sha256:851c8d927af0d879221e616ae1f66145253537bbdd321a77e8ef701b443a9a1a"},
+    {file = "pywin32-310-cp39-cp39-win_amd64.whl", hash = "sha256:96867217335559ac619f00ad70e513c0fcf84b8a3af9fc2bba3b59b97da70475"},
 ]
 
 [[package]]
@@ -1419,4 +1474,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "a355f9538e149d99129a571126fe83fdeeaa3ba02f6a2b2510f13dcc1c8780b8"
+content-hash = "e63cc5b7203a59fe5cd9d5d1a3fcf00c889a11efc3c2c7527bf0744391d0871c"

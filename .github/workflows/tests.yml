@@ -24,7 +24,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies with Poetry
+        working-directory: agp_api
         run: poetry install
 
       - name: Run unit tests
+        working-directory: agp_api
         run: poetry run python -m unittest discover -s tests -p "test_*.py" -v

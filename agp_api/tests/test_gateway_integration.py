@@ -26,7 +26,6 @@ Notes:
 
 import asyncio
 import json
-import os
 import unittest
 
 from agp_api.agent.agent_container import AgentContainer
@@ -58,7 +57,7 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
             cls.container = cls.container_manager.start_gateway()
             print("Gateway container started successfully")
         except RuntimeError as e:
-            raise RuntimeError(f"Gateway container failed to start: {e}")
+            raise RuntimeError(f"Gateway container failed to start: {e}") from e
 
     @classmethod
     def tearDownClass(cls):

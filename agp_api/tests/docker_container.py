@@ -37,7 +37,8 @@ class DockerContainerManager:
             return None
 
         if config_path is None:
-            config_path = os.path.abspath("./data/server-config.yaml")
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(current_dir, "data", "server-config.yaml")
 
         container = self.client.containers.run(
             "ghcr.io/agntcy/agp/gw:0.3.10",
@@ -46,6 +47,7 @@ class DockerContainerManager:
             volumes={config_path: {"bind": "/config.yaml", "mode": "ro"}},
             ports={f"{port}/tcp": port},
             detach=True,
+            auto_remove=True,
         )
 
         # Wait for container to start

@@ -264,28 +264,24 @@ class GatewayContainer:
         """
         Parse and process the incoming payload message.
 
-        This function decodes the incoming payload, validates essential fields, extracts required information,
-        and forwards the request to a FastAPI app. It then returns the server's response or handles errors appropriately.
+        This method decodes the incoming payload, validates required fields, extracts identifying information,
+        and forwards the request to the FastAPI application. It returns the server's JSON response when the HTTP
+        status is 200, or a JSON-formatted error message if validation fails or an error occurs during processing.
 
         Args:
             payload (dict): A dictionary containing the message details. Expected keys include:
-
-            - `"agent_id"` (str): Identifier for the agent; must be non-empty.
-
-            - `"route"` (str): The API route to which the message should be sent.
-
-            - `"input"` (dict): A dictionary with a key `"messages"`, which is a non-empty list where each element
-            is a dictionary. The last message in this list should contain the human input under the `"content"` key.
-
-            - `"metadata"` (Optional[dict]): A dictionary that may contain an `"id"` for tracking purposes.
+            - "agent_id" (str): A non-empty identifier for the agent.
+            - "route" (str): The API route where the message should be sent.
+            - "input" (dict): A dictionary containing a key "messages", which must be a non-empty list of dictionaries.
+               The last dictionary should have the user input under the "content" key.
+            - "metadata" (Optional[dict]): An optional dictionary that may contain an "id" for tracking purposes.
 
         Returns:
             str: A JSON string representing the reply. This is either the successful response from the FastAPI server
-            when a status code `200` is returned, or a JSON-encoded error message if validation fails.
+             when the HTTP status is 200, or a JSON-encoded error message if validation fails or an error occurs.
 
         Raises:
-            Exception: If the FastAPI server returns a status code other than `200`, an exception with the status code
-            and error details is raised.
+            Exception: If an error occurs during processing, such as a non-200 response from the FastAPI server.
         """
         logging.debug("Decoded payload: %s", payload)
 

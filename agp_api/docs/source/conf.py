@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath("../../src"))  # Adjust path to point to your
 # -- Project information -----------------------------------------------------
 project = "agp_api"
 author = "brisacoder"
-release = "0.0.2"
+release = "0.0.7"
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -15,7 +15,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "sphinxcontrib.autodoc_pydantic"
 ]
 
 napoleon_google_docstring = True

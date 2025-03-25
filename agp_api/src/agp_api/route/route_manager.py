@@ -89,15 +89,15 @@ class RouteManager:
         """
         Delete a route for the given organization and namespace associated with a specific remote agent.
 
-        This method checks if the provided remote agent exists within the stored routes. If it does,
-        it validates that the organization and namespace match those saved for that remote agent.
-        If there's a mismatch or the remote agent doesn't exist, it returns False. Otherwise, it
-        removes the route information and returns True.
+        This method checks if the provided remote agent exists within the stored routes.
+        If the remote agent exists, it validates that the provided organization and namespace match
+        those saved for the remote agent. If there is a mismatch or if the remote agent doesn't exist,
+        the method returns False. Otherwise, it removes the route information and returns True.
 
-        :param organization: The organization identifier.
-        :param namespace: The namespace identifier.
-        :param remote_agent: The name of the remote agent whose route should be removed.
-        logger = self.logger
+        Args:
+            organization (str): The identifier for the organization.
+            namespace (str): The identifier for the namespace.
+            remote_agent (str): The identifier for the remote agent whose route should be removed.
         """
         logger = logging.getLogger(__name__)
         if remote_agent not in self._routes_by_remote_agent:

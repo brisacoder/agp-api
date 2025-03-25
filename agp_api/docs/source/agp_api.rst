@@ -9,6 +9,7 @@ Subpackages
 
    agp_api.agent
    agp_api.gateway
+   agp_api.route
 
 Module contents
 ---------------

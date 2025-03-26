@@ -26,6 +26,10 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 master_doc = "index"
 
+html_theme_options = {
+    'navigation_depth': 2,
+}
+
 intersphinx_mapping = {
     'pydantic': ('https://docs.pydantic.dev/latest', None),  
 }

@@ -9,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
-!docs/build/
 develop-eggs/
 dist/
 downloads/
@@ -168,5 +167,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-.langgraph_api/
 logs/

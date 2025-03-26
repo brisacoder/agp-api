@@ -4,10 +4,11 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.12"
-  commands:
-    - pip install poetry -U
-    - pip install poetry-plugin-export
-    - cd agp_api && poetry export -f requirements.txt --without-hashes -o ../requirements.txt && cd ..
+  jobs:
+    pre_create_environment:
+      - pip install poetry -U
+      - pip install poetry-plugin-export
+      - cd agp_api && poetry export -f requirements.txt --without-hashes -o ../requirements.txt && cd ..
 
 sphinx:
   configuration: agp_api/docs/conf.py

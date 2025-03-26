@@ -24,6 +24,9 @@ include = ["docs/**/*"]
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "autodoc_pydantic"]
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

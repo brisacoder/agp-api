@@ -5,7 +5,8 @@ build:
   tools:
     python: "3.12"
   commands:
-    - pip install poetry==2.1.1
+    - pip install poetry -U
+    - pip install poetry-plugin-export
     - cd agp_api && poetry export -f requirements.txt --without-hashes -o ../requirements.txt && cd ..
 
 sphinx:

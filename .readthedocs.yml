@@ -11,7 +11,7 @@ build:
       - cd agp_api && poetry export -f requirements.txt --without-hashes -o ../requirements.txt && cd ..
 
 sphinx:
-  configuration: agp_api/docs/conf.py
+  configuration: agp_api/docs/source/conf.py
 
 python:
   install:

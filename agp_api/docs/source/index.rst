@@ -35,6 +35,7 @@ Here's a simple example of how to create a client and publish a message using `a
    from agp_api.gateway.gateway_container import GatewayContainer, AgentContainer
 
    gateway_container = GatewayContainer()
+   # Set the FastAPI app only for REST Server interworking
    gateway_container.set_fastapi_app(create_app())
    agent_container = AgentContainer()
    gateway_container.set_config(endpoint="http://127.0.0.1:46357", insecure=True)

@@ -244,17 +244,17 @@ class TestRouteManager(unittest.TestCase):
         """Test deleting a route with correct agent but wrong org/namespace."""
         # Add a route
         self.route_manager.add_route("org1", "ns1", "agent1")
-        
+
         # Try to delete with wrong organization/namespace
         result = self.route_manager.delete_route("wrong_org", "ns1", "agent1")
         self.assertFalse(result)
-        
+
         # Verify route still exists
         route_info = self.route_manager.get_route_by_remote_agent("agent1")
         self.assertIsNotNone(route_info)
         self.assertEqual(route_info.organization, "org1")
         self.assertEqual(route_info.namespace, "ns1")
-        
+
         # Clean up properly
         self.route_manager.delete_route("org1", "ns1", "agent1")
 

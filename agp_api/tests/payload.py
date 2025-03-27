@@ -73,3 +73,10 @@ class Payload:
         "input": {"messages": [{"role": "assistant", "content": "Hello"}]},
         "route": "/api/v1/runs",
     }
+
+    no_route = {
+        "agent_id": "remote_agent",
+        "input": {"messages": [{"role": "assistant", "content": "Hello, world!"}]},
+        "model": "gpt-4o",
+        "metadata": {"id": str(uuid.uuid4())},
+    }

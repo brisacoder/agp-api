@@ -165,7 +165,7 @@ class GatewayContainer:
         """
         self.gateway = gateway
 
-    async def _connect(self, agent_container: AgentContainer, remote_agent) -> int:
+    async def _connect(self, agent_container: AgentContainer) -> int:
         """
         Connects to the remote gateway, subscribes to messages, and processes them.
 
@@ -207,8 +207,6 @@ class GatewayContainer:
                 local_agent,
                 local_agent_id,
             )
-            if remote_agent is not None:
-                await self.gateway.set_route(organization, namespace, remote_agent)
 
         except Exception as e:
             raise RuntimeError(
@@ -218,11 +216,7 @@ class GatewayContainer:
         return conn_id
 
     async def connect_with_retry(
-        self,
-        agent_container: AgentContainer,
-        max_duration=300,
-        initial_delay=1,
-        remote_agent: Optional[str] = None,
+        self, agent_container: AgentContainer, max_duration=300, initial_delay=1
     ):
         """
         Attempts to connect to a gateway at the specified address and port using exponential backoff.
@@ -248,7 +242,9 @@ class GatewayContainer:
                 remaining_time = max_duration - (time.time() - start_time)
                 if remaining_time <= 0:
                     break
-                return await asyncio.wait_for(self._connect(agent_container, remote_agent), timeout=remaining_time)
+                return await asyncio.wait_for(
+                    self._connect(agent_container), timeout=remaining_time
+                )
             except Exception as e:
                 logger.warning(
                     "Connection attempt failed: %s. Retrying in %s seconds...", e, delay
@@ -289,7 +285,7 @@ class GatewayContainer:
         agent_id = payload.get("agent_id")
         logging.debug("Agent id: %s", agent_id)
 
-        # Validate that the assistant_id is not empty.
+        # Validate that the agent_id is not empty.
         if not payload.get("agent_id"):
             return self.create_error(
                 agent_id=agent_id,

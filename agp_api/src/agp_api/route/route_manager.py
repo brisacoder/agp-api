@@ -28,6 +28,8 @@ from typing import Dict, List, Optional
 
 from .route_info import RouteInfo
 
+logger = logging.getLogger(__name__)
+
 
 class RouteManager:
     """
@@ -36,8 +38,6 @@ class RouteManager:
     This class provides methods to add, delete, and retrieve routes based on
     organization, namespace, and remote agent information.
     """
-
-    logger = logging.getLogger(__name__)
 
     def __init__(self) -> None:
         """
@@ -70,6 +70,12 @@ class RouteManager:
                 f"Invalid RouteInfo object for remote agent '{remote_agent}'"
             )
         if existing_route:
+            logger.info(
+                "Replacing existing route for : '%s/%s' -> '%s'",
+                existing_route.organization,
+                existing_route.namespace,
+                remote_agent,
+            )
             self.delete_route(
                 existing_route.organization, existing_route.namespace, remote_agent
             )
@@ -99,9 +105,10 @@ class RouteManager:
             namespace (str): The identifier for the namespace.
             remote_agent (str): The identifier for the remote agent whose route should be removed.
         """
-        logger = logging.getLogger(__name__)
         if remote_agent not in self._routes_by_remote_agent:
-            logger.warning("Delete route failed: Remote agent '%s' not found", remote_agent)
+            logger.warning(
+                "Delete route failed: Remote agent '%s' not found", remote_agent
+            )
             return False
         actual_route = self._routes_by_remote_agent[remote_agent]
         actual_org = actual_route.organization
@@ -205,7 +212,7 @@ class RouteManager:
         """
         route_info = self._routes_by_remote_agent.get(remote_agent)
         if route_info and not isinstance(route_info, RouteInfo):
-            self.logger.error(
+            logger.error(
                 "Inconsistent data: Invalid RouteInfo object for remote agent '%s'",
                 remote_agent,
             )
@@ -229,7 +236,7 @@ class RouteManager:
         """
         route_info = self._routes_by_remote_agent.get(remote_agent)
         if not route_info or not isinstance(route_info, RouteInfo):
-            self.logger.warning(
+            logger.warning(
                 "Invalid or missing RouteInfo for remote agent '%s'", remote_agent
             )
             return False

@@ -66,13 +66,15 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
             print("Stopping Gateway container")
             cls.container_manager.stop_all()
 
-    async def setup_gateway_and_agent(self) -> tuple[GatewayContainer, AgentContainer]:
+    async def setup_gateway_and_agent(
+        self, local_agent="server"
+    ) -> tuple[GatewayContainer, AgentContainer]:
         """
         Helper method to set up GatewayContainer and AgentContainer with configuration.
         """
         gateway_container = GatewayContainer()
         gateway_container.set_fastapi_app(create_app())
-        agent_container = AgentContainer()
+        agent_container = AgentContainer(local_agent=local_agent)
         gateway_container.set_config(endpoint="http://127.0.0.1:46357", insecure=True)
         return gateway_container, agent_container
 
@@ -97,6 +99,8 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
         # Assert that the connection ID is returned
         self.assertIsInstance(conn_id, int)
 
+        await gateway_container.gateway.disconnect()
+
     async def test_client_connect(self):
         """
         Test the `connect_with_retry` method of GatewayContainer.
@@ -109,18 +113,34 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
         http://127.0.0.1:46357 for this test to pass.
         """
 
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
+        local_agent = "client"
+        gateway_container, agent_container = await self.setup_gateway_and_agent(
+            local_agent=local_agent
+        )
+
+        self.assertEqual(agent_container.local_agent, local_agent)
 
         # Call connect_with_retry
         conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
+            agent_container=agent_container, max_duration=10, initial_delay=1
         )
 
         # Assert that the connection ID is returned
         self.assertIsInstance(conn_id, int)
+
+        organization = agent_container.organization
+        namespace = agent_container.namespace
+
+        await gateway_container.register_route(
+            organization=organization, namespace=namespace, remote_agent="server"
+        )
+        self.assertTrue(
+            gateway_container.route_manager.route_exists(
+                organization=organization, namespace=namespace, remote_agent="server"
+            )
+        )
+
+        await gateway_container.gateway.disconnect()
 
     async def test_start_server(self):
         """
@@ -133,7 +153,12 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
         Note: The AGP Gateway must be running and accessible at
         http://127.0.0.1:46357 for this test to pass.
         """
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
+
+        local_agent = "server"
+        gateway_container, agent_container = await self.setup_gateway_and_agent(
+            local_agent=local_agent
+        )
+        self.assertEqual(agent_container.local_agent, local_agent)
 
         # Call connect_with_retry
         conn_id = await gateway_container.connect_with_retry(
@@ -151,6 +176,7 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
 
         try:
             server_task.cancel()
+            await gateway_container.gateway.disconnect()
         except asyncio.CancelledError:
             pass  # Expected when the task is canceled
 
@@ -159,87 +185,49 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
         except RuntimeError:
             pass  # Expected when the task is canceled
 
-    async def test_publish_message(self):
-        """Test the publish_message functionality of the GatewayContainer.
-
-        This test case verifies that:
-        1. A connection can be established between gateway and agent containers
-        2. Messages can be published successfully through the gateway
-
-        The test follows these steps:
-        1. Sets up gateway and agent containers
-        2. Establishes connection with retry mechanism
-        3. Verifies connection ID is returned
-        4. Publishes a test message
-        5. Verifies response is received
-
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If any of the test conditions fail
-        """
-
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
+    async def _publish_message_test(self, payload):
+        local_agent = "client"
+        remote_agent = "server"
+        gateway_container, agent_container = await self.setup_gateway_and_agent(
+            local_agent=local_agent
+        )
+        self.assertEqual(agent_container.local_agent, local_agent)
 
         # Call connect_with_retry
         conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
+            agent_container=agent_container, max_duration=10, initial_delay=1
         )
-
-        # Assert that the connection ID is returned
         self.assertIsInstance(conn_id, int)
 
-        # Publish a message
+        organization = agent_container.organization
+        namespace = agent_container.namespace
+
+        await gateway_container.register_route(
+            organization=organization, namespace=namespace, remote_agent=remote_agent
+        )
+        self.assertTrue(
+            gateway_container.route_manager.route_exists(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=remote_agent,
+            )
+        )
+
+        # Publish a message with the provided payload
         _ = await gateway_container.publish_messsage(
-            message=Payload.generic,
+            message=payload,
             agent_container=agent_container,
-            remote_agent="server",
+            remote_agent=remote_agent,
         )
+        await gateway_container.gateway.disconnect()
 
-    async def test_publish_github_no_messages(self):
-        """Test the publish_message functionality of the GatewayContainer.
+    async def test_publish_message_generic(self):
+        """Test publish_message with Payload.generic"""
+        await self._publish_message_test(Payload.generic)
 
-        This test case verifies that:
-        1. A connection can be established between gateway and agent containers
-        2. Messages can be published successfully through the gateway
-
-        The test follows these steps:
-        1. Sets up gateway and agent containers
-        2. Establishes connection with retry mechanism
-        3. Verifies connection ID is returned
-        4. Publishes a test message
-        5. Verifies response is received
-
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If any of the test conditions fail
-        """
-
-        gateway_container, agent_container = await self.setup_gateway_and_agent()
-
-        # Call connect_with_retry
-        conn_id = await gateway_container.connect_with_retry(
-            agent_container=agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
-        )
-
-        # Assert that the connection ID is returned
-        self.assertIsInstance(conn_id, int)
-
-        # Publish a message
-        _ = await gateway_container.publish_messsage(
-            message=Payload.github,
-            agent_container=agent_container,
-            remote_agent="server",
-        )
+    async def test_publish_message_github_no_messages(self):
+        """Test publish_message with Payload.github (no messages)"""
+        await self._publish_message_test(Payload.github)
 
     async def test_publish_and_receive_message(self):
         """
@@ -263,16 +251,15 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
         """
 
         # Client
+        local_agent = "client"
+        remote_agent = "server"
         client_gateway_container, client_agent_container = (
-            await self.setup_gateway_and_agent()
+            await self.setup_gateway_and_agent(local_agent=local_agent)
         )
 
         # Client connection
         client_conn_id = await client_gateway_container.connect_with_retry(
-            agent_container=client_agent_container,
-            max_duration=10,
-            initial_delay=1,
-            remote_agent="server",
+            agent_container=client_agent_container, max_duration=10, initial_delay=1
         )
 
         # Assert that the connection ID is returned
@@ -280,7 +267,7 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
 
         # Server
         server_gateway_container, server_agent_container = (
-            await self.setup_gateway_and_agent()
+            await self.setup_gateway_and_agent(local_agent=remote_agent)
         )
 
         # Server connection
@@ -298,15 +285,32 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
             )
         )
 
+        organization = client_agent_container.organization
+        namespace = client_agent_container.namespace
+
+        await client_gateway_container.register_route(
+            organization=organization,
+            namespace=namespace,
+            remote_agent=server_agent_container.local_agent,
+        )
+
+        self.assertTrue(
+            client_gateway_container.route_manager.route_exists(
+                organization=organization,
+                namespace=namespace,
+                remote_agent=server_agent_container.local_agent,
+            )
+        )
+
         try:
             # Wait briefly to ensure the server has started
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
             # Publish a message
             await client_gateway_container.publish_messsage(
                 message=Payload.generic,
                 agent_container=client_agent_container,
-                remote_agent="server",
+                remote_agent=server_agent_container.local_agent,
             )
             _, recv = await client_gateway_container.gateway.receive()
             response_data = json.loads(recv.decode("utf8"))
@@ -331,3 +335,7 @@ class TestGatewayIntegration(unittest.IsolatedAsyncioTestCase):
                 await server_task
             except RuntimeError:
                 pass
+
+
+if __name__ == "__main__":
+    unittest.main()

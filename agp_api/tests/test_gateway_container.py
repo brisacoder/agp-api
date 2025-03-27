@@ -98,45 +98,64 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         )
         self.assertFalse(result)
 
-    async def test_gateway_initialization_and_config(self):
+    async def test_initialization_without_parameters(self):
         """
-        Test gateway initialization and configuration methods.
-
-        This test verifies that a gateway can be initialized with various
-        configurations and that the getter/setter methods work properly.
+        Test initialization of GatewayContainer with no parameters.
         """
+        gateway_container = GatewayContainer()
+        self.assertIsNotNone(gateway_container.gateway)
+        self.assertIsNone(gateway_container.fastapi_app)
 
-        # Test initialization with no parameters
-        with patch("agp_api.gateway.gateway_container.Gateway") as MockGateway:
-            gateway_container = GatewayContainer()
-            self.assertIsNotNone(gateway_container.gateway)
-            self.assertIsNone(gateway_container.fastapi_app)
-
-        # Test initialization with parameters
+    async def test_initialization_with_parameters(self):
+        """
+        Test initialization of GatewayContainer with provided parameters.
+        """
         mock_gateway = MagicMock()
-        mock_app = FastAPI()
-        gateway_container = GatewayContainer(gateway=mock_gateway, fastapi_app=mock_app)
+        fastapi_app_init = MagicMock()
+        gateway_container = GatewayContainer(
+            gateway=mock_gateway, fastapi_app=fastapi_app_init
+        )
         self.assertEqual(gateway_container.gateway, mock_gateway)
-        self.assertEqual(gateway_container.fastapi_app, mock_app)
+        self.assertEqual(gateway_container.fastapi_app, fastapi_app_init)
 
-        gateway_container.set_fastapi_app(mock_app)
-        self.assertEqual(gateway_container.get_fastapi_app(), mock_app)
+    async def test_set_fastapi_app(self):
+        """
+        Test setting the FastAPI app.
+        """
+        gateway_container = GatewayContainer()
+        fastapi_app_set = MagicMock()
+        gateway_container.set_fastapi_app(fastapi_app_set)
+        self.assertEqual(gateway_container.get_fastapi_app(), fastapi_app_set)
 
+    async def test_set_get_gateway(self):
+        """
+        Test setting and getting the gateway.
+        """
+        gateway_container = GatewayContainer()
         new_gateway = MagicMock()
         gateway_container.set_gateway(new_gateway)
         self.assertEqual(gateway_container.get_gateway(), new_gateway)
 
-        # Test create_gateway
+    async def test_create_gateway(self):
+        """
+        Test the create_gateway method.
+        """
+        gateway_container = GatewayContainer()
         with patch("agp_api.gateway.gateway_container.Gateway") as MockGateway:
             mock_instance = MagicMock()
             MockGateway.return_value = mock_instance
             created_gateway = gateway_container.create_gateway()
             self.assertEqual(gateway_container.gateway, created_gateway)
 
-        # Test set_config
+    async def test_set_config(self):
+        """
+        Test setting configuration on the gateway.
+        """
         custom_endpoint = "http://custom:8000"
+        gateway_container = GatewayContainer()
         mock_config = MagicMock()
         gateway_container.gateway = MagicMock()
+        # Initialize config attribute on the gateway mock
         gateway_container.gateway.config = mock_config
         gateway_container.set_config(endpoint=custom_endpoint, insecure=True)
         self.assertEqual(gateway_container.gateway.config.endpoint, custom_endpoint)
@@ -155,16 +174,12 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         self.assertIn("message", response_data)
         self.assertEqual(response_data["error"], HTTPStatus.UNPROCESSABLE_ENTITY)
 
-        # Test with missing route
-        payload_no_route = {
-            "agent_id": "test_agent",
-            "input": {"messages": [{"role": "assistant", "content": "Hello"}]},
-        }
-        response = gateway_container.process_message(payload_no_route)
+        response = gateway_container.process_message(Payload.no_route)
         response_data = json.loads(response)
         self.assertIn("message", response_data)
         self.assertEqual(response_data["error"], HTTPStatus.NOT_FOUND)
 
+        # There is no FastAPI app set, so this should raise an exception
         response = gateway_container.process_message(Payload.generic)
         response_data = json.loads(response)
         self.assertIn("message", response_data)
@@ -231,7 +246,10 @@ class TestGatewayContainer(unittest.IsolatedAsyncioTestCase):
         response = gateway_container.process_message(Payload.no_messages)
 
         # Since we're returning the payload on exceptions, we should get the original payload
-        self.assertEqual(json.loads(response)["message"], "The input.messages field should be a non-empty list.")
+        self.assertEqual(
+            json.loads(response)["message"],
+            "The input.messages field should be a non-empty list.",
+        )
 
 
 if __name__ == "__main__":

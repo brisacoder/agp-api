@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
     "fastapi[standard] (==0.115.11)",
-    "agp-bindings (==0.1.14)",
+    "agp-bindings (==0.2.0)",
     "python-dotenv (==1.0.1)",
     "pydantic (==2.10.6)",
     "sphinx (>=7.0,<8.0)",

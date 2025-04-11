@@ -8,6 +8,7 @@ from http import HTTPStatus
 from typing import Any, Dict, Optional
 
 from agp_bindings import Gateway, GatewayConfig
+import agp_bindings
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
@@ -33,18 +34,42 @@ class GatewayContainer:
     """
 
     def __init__(
-        self, gateway: Optional[Gateway] = None, fastapi_app: Optional[FastAPI] = None
+        self,
+        organization: str,
+        namespace: str,
+        agent_name: str,
+        gateway: Optional[Gateway] = None,
+        fastapi_app: Optional[FastAPI] = None,
     ):
         """
-        Initializes the GatewayContainer with a Gateway instance and optionally a FastAPI app.
-
-        Args:
-            gateway (Optional[Gateway]): The Gateway instance to manage. If not provided, a new instance will be created.
-            fastapi_app (Optional[FastAPI]): The FastAPI application instance.
+        Initialize a GatewayContainer instance with optional gateway management and FastAPI integration.
+        Parameters:
+            organization (str): Identifier for the organization.
+            namespace (str): Namespace in which the agent operates.
+            agent_name (str): Name of the agent.
+            gateway (Optional[Gateway]): An existing Gateway instance. If not provided, a new instance will be created based on the organization, namespace, and agent_name.
+            fastapi_app (Optional[FastAPI]): A FastAPI application instance for HTTP integrations.
+        Attributes:
+            gateway (Gateway): The Gateway instance used for managing gateway operations.
+            fastapi_app (Optional[FastAPI]): The FastAPI app instance (if provided).
+            organization (str): Organization identifier provided during initialization.
+            namespace (str): Namespace provided during initialization.
+            agent_name (str): Agent name provided during initialization.
+            route_manager (RouteManager): An instance of RouteManager used for managing Agent routes.
+            session: Placeholder for the session layer; initialized to None.
         """
-        self.gateway = gateway if gateway is not None else Gateway()
+        self.gateway = (
+            gateway
+            if gateway is not None
+            else Gateway.new(organization, namespace, agent_name)
+        )
         self.fastapi_app = fastapi_app
+        self.organization = organization
+        self.namespace = namespace
+        self.agent_name = agent_name
         self.route_manager = RouteManager()
+        # Session Layer
+        self.session = None
 
     async def register_route(self, organization, namespace, remote_agent):
         """
@@ -70,7 +95,7 @@ class GatewayContainer:
                 namespace=namespace,
                 agent=remote_agent,
             )
-            # Only add route if set_route succeeds
+            # Only add route to route manager if set_route succeeds
             self.route_manager.add_route(
                 organization=organization,
                 namespace=namespace,
@@ -133,7 +158,10 @@ class GatewayContainer:
         Returns:
             Gateway: The newly created Gateway instance.
         """
-        self.gateway = Gateway()
+        if self.gateway is None:
+            self.gateway = Gateway.new(
+                self.organization, self.namespace, self.agent_name
+            )
         return self.gateway
 
     def set_config(
@@ -395,6 +423,7 @@ class GatewayContainer:
 
     async def publish_messsage(
         self,
+        session: agp_bindings.PySessionInfo,
         message: Dict[str, Any],
         agent_container: AgentContainer,
         remote_agent: str,
@@ -412,7 +441,11 @@ class GatewayContainer:
         try:
             json_message = json.dumps(message)
             await self.gateway.publish(
-                json_message.encode(), organization, namespace, remote_agent
+                session,
+                json_message.encode(),
+                organization,
+                namespace,
+                remote_agent
             )
         except Exception as e:
             raise ValueError(f"Error sending message: {e}") from e
@@ -436,3 +469,5 @@ class GatewayContainer:
         }
         msg = json.dumps(payload)
         return msg
+
+

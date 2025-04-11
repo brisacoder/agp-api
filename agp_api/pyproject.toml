@@ -1,0 +1,33 @@
+[project]
+name = "agp-api"
+version = "0.0.8"
+description = ""
+authors = [
+    {name = "brisacoder",email = "dev@brisa.ai"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "fastapi[standard] (==0.115.11)",
+    "agp-bindings (==0.1.14)",
+    "python-dotenv (==1.0.1)",
+    "pydantic (==2.10.6)",
+    "sphinx (>=7.0,<8.0)",
+    "sphinx-rtd-theme (>=1.2,<2.0)",
+    "docker (>=7.1.0,<8.0.0)",  
+]
+
+[tool.poetry]
+packages = [{include = "agp_api", from = "src"}]
+include = ["docs/**/*"]
+
+[tool.poetry.extras]
+docs = ["sphinx", "sphinx-rtd-theme", "autodoc_pydantic"]
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

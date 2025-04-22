@@ -1,0 +1,38 @@
+[project]
+name             = "agp-api"
+version          = "0.0.8"
+description      = ""
+readme           = "agp_api/README.md"
+requires-python  = ">=3.12,<4.0"
+
+dependencies = [
+  "fastapi[standard]==0.115.11",
+  "agp-bindings==0.3.0",
+  "python-dotenv==1.0.1",
+  "pydantic==2.10.6",
+  "docker>=7.1.0,<8.0.0",
+]
+
+dynamic = ["optional-dependencies"]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=7.0,<8.0",
+  "sphinx-rtd-theme>=1.2,<2.0",
+  "autodoc-pydantic",
+]
+
+[tool.poetry]
+# Poetry‑specific settings
+packages = [
+  # Poetry will look under src/ for this package
+  { include = "agp_api", from = "agp_api/src" }
+]
+include         = ["agp_api/docs/**/*"]
+
+[build-system]
+requires    = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"

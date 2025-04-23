@@ -67,14 +67,19 @@ class TestFireForget(unittest.IsolatedAsyncioTestCase):
             cls.container_manager.stop_all()
 
     async def setup_gateway_and_agent(
-        self, local_agent="server"
+        self, agent_id="cisco/default/server"
     ) -> tuple[GatewayContainer, AgentContainer]:
         """
         Helper method to set up GatewayContainer and AgentContainer with configuration.
         """
-        gateway_container = GatewayContainer()
+        try:
+            org, name, agent = agent_id.split("/")
+        except ValueError as e:
+            print("Error: IDs must be in the format organization/namespace/agent.")
+            raise e
+        gateway_container = GatewayContainer(org, name, agent)
         gateway_container.set_fastapi_app(create_app())
-        agent_container = AgentContainer(local_agent=local_agent)
+        agent_container = AgentContainer(org, name, agent)
         gateway_container.set_config(endpoint="http://127.0.0.1:46357", insecure=True)
         return gateway_container, agent_container
 
@@ -115,7 +120,7 @@ class TestFireForget(unittest.IsolatedAsyncioTestCase):
 
         local_agent = "client"
         gateway_container, agent_container = await self.setup_gateway_and_agent(
-            local_agent=local_agent
+            agent_id="cisco/default/client"
         )
 
         self.assertEqual(agent_container.local_agent, local_agent)
